@@ -1,0 +1,2217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JARVIS — Desktop AI Assistant</title>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Lucide Vector Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root {
+      --bg-base: #060911;
+      --bg-surface: #0b1120;
+      --bg-surface-elevated: #111b30;
+      --bg-glass: rgba(17, 27, 48, 0.75);
+      --bg-glass-card: rgba(22, 36, 64, 0.55);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-accent: rgba(56, 189, 248, 0.35);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --cyan: #38bdf8;
+      --cyan-glow: rgba(56, 189, 248, 0.4);
+      --indigo: #6366f1;
+      --indigo-glow: rgba(99, 102, 241, 0.4);
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --purple: #c084fc;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 16px;
+      --radius-full: 9999px;
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg-base);
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(56, 189, 248, 0.07) 0%, transparent 40%),
+        radial-gradient(circle at 90% 90%, rgba(99, 102, 241, 0.07) 0%, transparent 40%);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.12); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(56, 189, 248, 0.3); }
+
+    /* Top Desktop Control Bar */
+    .top-bar {
+      height: 52px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 20px;
+      z-index: 20;
+    }
+    .top-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      cursor: pointer;
+    }
+    .top-brand svg {
+      width: 20px;
+      height: 20px;
+      color: var(--cyan);
+      filter: drop-shadow(0 0 8px var(--cyan-glow));
+    }
+    .top-status-pills {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 0.75rem;
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .status-pill.highlight {
+      border-color: rgba(56, 189, 248, 0.3);
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.05);
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--emerald);
+      box-shadow: 0 0 8px var(--emerald);
+    }
+    .status-dot.pulse {
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Main Container */
+    .app-body {
+      display: flex;
+      flex: 1;
+      height: calc(100vh - 52px);
+      overflow: hidden;
+    }
+
+    /* Sidebar */
+    .sidebar {
+      width: 280px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+    }
+    .sidebar-section {
+      padding: 12px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+    }
+    .sidebar-label {
+      font-size: 0.68rem;
+      font-weight: 700;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 12px;
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.18s ease;
+      user-select: none;
+      margin-bottom: 2px;
+    }
+    .nav-item:hover {
+      color: var(--text-main);
+      background: rgba(255, 255, 255, 0.04);
+    }
+    .nav-item.active {
+      color: var(--cyan);
+      background: rgba(56, 189, 248, 0.08);
+      font-weight: 600;
+      border-left: 2px solid var(--cyan);
+    }
+    .nav-item svg {
+      width: 16px;
+      height: 16px;
+      stroke-width: 2;
+    }
+
+    .session-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 10px 12px;
+    }
+    .session-card {
+      padding: 8px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-bottom: 4px;
+      transition: all 0.15s;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .session-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-main);
+    }
+    .session-card.active {
+      background: var(--bg-surface-elevated);
+      color: var(--cyan);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: transparent;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Workspaces Panes */
+    .workspace-pane {
+      display: none;
+      flex: 1;
+      height: 100%;
+      overflow-y: auto;
+      flex-direction: column;
+    }
+    .workspace-pane.active {
+      display: flex;
+    }
+
+    /* Common Components */
+    .btn {
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 0.78rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.18s;
+      border: none;
+      outline: none;
+      font-family: inherit;
+    }
+    .btn svg {
+      width: 14px;
+      height: 14px;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+      color: #ffffff;
+      box-shadow: 0 2px 10px rgba(56, 189, 248, 0.25);
+    }
+    .btn-primary:hover {
+      box-shadow: 0 4px 16px rgba(56, 189, 248, 0.45);
+      transform: translateY(-1px);
+    }
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.06);
+      color: var(--text-main);
+      border: 1px solid var(--border-subtle);
+    }
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+    .btn-danger {
+      background: rgba(244, 63, 94, 0.15);
+      color: var(--rose);
+      border: 1px solid rgba(244, 63, 94, 0.3);
+    }
+    .btn-danger:hover {
+      background: rgba(244, 63, 94, 0.25);
+    }
+
+    /* 1. Desktop Dashboard Workspace */
+    .dashboard-container {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .deck-header {
+      margin-bottom: 24px;
+    }
+    .deck-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      margin-bottom: 4px;
+      background: linear-gradient(135deg, #ffffff 40%, var(--cyan) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .deck-subtitle {
+      font-size: 0.84rem;
+      color: var(--text-muted);
+    }
+
+    .telemetry-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-bottom: 24px;
+    }
+    .telemetry-card {
+      background: var(--bg-glass-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      backdrop-filter: blur(12px);
+      transition: all 0.2s;
+    }
+    .telemetry-card:hover {
+      border-color: rgba(56, 189, 248, 0.3);
+      transform: translateY(-2px);
+    }
+    .telemetry-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .telemetry-value {
+      font-size: 1.15rem;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: var(--text-main);
+      margin-bottom: 4px;
+    }
+    .telemetry-desc {
+      font-size: 0.72rem;
+      color: var(--text-dim);
+    }
+
+    .proactive-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .action-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      transition: all 0.2s;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .action-card:hover {
+      border-color: var(--cyan);
+      box-shadow: 0 4px 20px rgba(56, 189, 248, 0.12);
+      transform: translateY(-2px);
+    }
+    .action-head {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 10px;
+    }
+    .action-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-sm);
+      background: rgba(56, 189, 248, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--cyan);
+    }
+    .action-title {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .action-desc {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin-bottom: 14px;
+    }
+
+    /* 2. Chat & Tasks View */
+    .chat-view {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+    }
+    .chat-header {
+      padding: 14px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      background: rgba(11, 17, 32, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      backdrop-filter: blur(8px);
+    }
+    .chat-title-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .chat-title {
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+    .messages-scroll {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+    .message-row {
+      display: flex;
+      gap: 12px;
+      max-width: 860px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .message-row.user {
+      flex-direction: row-reverse;
+    }
+    .avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      font-size: 0.8rem;
+      font-weight: 700;
+    }
+    .avatar.jarvis {
+      background: linear-gradient(135deg, var(--cyan) 0%, var(--indigo) 100%);
+      color: white;
+      box-shadow: 0 0 12px rgba(56, 189, 248, 0.35);
+    }
+    .avatar.user {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-muted);
+    }
+    .bubble {
+      padding: 14px 18px;
+      border-radius: var(--radius-md);
+      font-size: 0.86rem;
+      line-height: 1.6;
+      max-width: 80%;
+      word-break: break-word;
+    }
+    .bubble.user {
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--text-main);
+    }
+    .bubble.jarvis {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      color: var(--text-main);
+      box-shadow: 0 4px 14px rgba(0,0,0,0.25);
+    }
+
+    /* Tool Call Card */
+    .tool-widget {
+      background: rgba(6, 9, 17, 0.7);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: var(--radius-sm);
+      margin: 10px 0;
+      font-family: var(--font-mono);
+      font-size: 0.76rem;
+      overflow: hidden;
+    }
+    .tool-widget-header {
+      background: rgba(56, 189, 248, 0.08);
+      padding: 6px 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid rgba(56, 189, 248, 0.15);
+      color: var(--cyan);
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .tool-widget-body {
+      padding: 10px;
+      max-height: 240px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      color: #94a3b8;
+    }
+
+    /* Chat Input Bar */
+    .input-bar-container {
+      padding: 16px 24px;
+      background: var(--bg-surface);
+      border-top: 1px solid var(--border-subtle);
+    }
+    .input-bar {
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 6px 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s;
+    }
+    .input-bar:focus-within {
+      border-color: var(--cyan);
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.2);
+    }
+    .main-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 0.88rem;
+      padding: 6px 8px;
+    }
+    .main-input::placeholder {
+      color: var(--text-dim);
+    }
+
+    /* 3. Full-Screen Holographic Voice Station */
+    .voice-station {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 40px;
+      background: radial-gradient(circle at center, rgba(56, 189, 248, 0.08) 0%, transparent 60%);
+      position: relative;
+    }
+    .reactor-unit {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      margin-bottom: 30px;
+      user-select: none;
+    }
+    .reactor-ring {
+      position: absolute;
+      border-radius: 50%;
+      border: 1px dashed rgba(56, 189, 248, 0.4);
+      box-shadow: 0 0 15px rgba(56, 189, 248, 0.15);
+      transition: all 0.3s;
+    }
+    .ring-1 { width: 100%; height: 100%; animation: spin 16s linear infinite; }
+    .ring-2 { width: 78%; height: 78%; border-color: rgba(99, 102, 241, 0.45); border-style: dotted; animation: spin-rev 12s linear infinite; }
+    .ring-3 { width: 56%; height: 56%; border-color: rgba(56, 189, 248, 0.6); animation: spin 8s linear infinite; }
+    .reactor-core {
+      width: 76px;
+      height: 76px;
+      border-radius: 50%;
+      background: radial-gradient(circle, var(--cyan) 0%, var(--indigo) 80%);
+      box-shadow: 0 0 30px var(--cyan-glow), 0 0 60px var(--indigo-glow);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      transition: all 0.25s;
+      z-index: 5;
+    }
+    .reactor-core svg {
+      width: 32px;
+      height: 32px;
+    }
+    .reactor-unit:hover .reactor-core {
+      transform: scale(1.08);
+      box-shadow: 0 0 40px var(--cyan), 0 0 80px var(--indigo);
+    }
+    .voice-station.listening .reactor-core {
+      background: radial-gradient(circle, var(--emerald) 0%, #059669 80%);
+      box-shadow: 0 0 45px var(--emerald);
+      transform: scale(1.12);
+    }
+    .voice-station.speaking .reactor-core {
+      background: radial-gradient(circle, var(--purple) 0%, var(--indigo) 80%);
+      box-shadow: 0 0 50px var(--purple);
+      animation: pulse 1s infinite alternate;
+    }
+    @keyframes spin { 100% { transform: rotate(360deg); } }
+    @keyframes spin-rev { 100% { transform: rotate(-360deg); } }
+
+    /* Waveform visualizer */
+    .waveform-visualizer {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      height: 40px;
+      margin-bottom: 20px;
+    }
+    .wave-bar {
+      width: 4px;
+      height: 8px;
+      border-radius: 2px;
+      background: var(--cyan);
+      transition: height 0.08s ease;
+    }
+    .voice-station.speaking .wave-bar {
+      animation: wave-anim 0.8s ease-in-out infinite alternate;
+    }
+    .wave-bar:nth-child(2) { animation-delay: 0.1s; }
+    .wave-bar:nth-child(3) { animation-delay: 0.2s; }
+    .wave-bar:nth-child(4) { animation-delay: 0.3s; }
+    .wave-bar:nth-child(5) { animation-delay: 0.4s; }
+    .wave-bar:nth-child(6) { animation-delay: 0.25s; }
+    .wave-bar:nth-child(7) { animation-delay: 0.15s; }
+    @keyframes wave-anim {
+      0% { height: 6px; }
+      100% { height: 36px; background: var(--purple); }
+    }
+
+    .voice-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 2px;
+      margin-bottom: 8px;
+      color: var(--text-main);
+    }
+    .voice-status-text {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-bottom: 20px;
+    }
+    .voice-transcript-card {
+      max-width: 600px;
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      font-size: 0.88rem;
+      color: var(--text-main);
+      line-height: 1.5;
+      text-align: center;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* 4. Tools Grid Workspace */
+    .tools-workspace {
+      padding: 24px;
+      max-width: 1200px;
+      margin: 0 auto;
+      width: 100%;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+      gap: 16px;
+    }
+    .tool-item-card {
+      background: var(--bg-glass-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      padding: 18px;
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .tool-item-card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .tool-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .tool-name {
+      font-family: var(--font-mono);
+      font-size: 0.86rem;
+      font-weight: 600;
+      color: var(--cyan);
+    }
+    .tool-badge {
+      font-size: 0.68rem;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      font-weight: 600;
+    }
+    .badge-safe { background: rgba(16, 185, 129, 0.15); color: var(--emerald); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .badge-mutating { background: rgba(245, 158, 11, 0.15); color: var(--amber); border: 1px solid rgba(245, 158, 11, 0.3); }
+    .badge-danger { background: rgba(244, 63, 94, 0.15); color: var(--rose); border: 1px solid rgba(244, 63, 94, 0.3); }
+
+    /* Modals & Popovers */
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(10px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+    .modal-card {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 580px;
+      box-shadow: 0 20px 50px rgba(0,0,0,0.6);
+      overflow: hidden;
+    }
+    .modal-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .modal-title {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .modal-body {
+      padding: 20px;
+      max-height: 75vh;
+      overflow-y: auto;
+    }
+    .modal-footer {
+      padding: 14px 20px;
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 14px;
+    }
+    .form-label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+    }
+    .form-control {
+      width: 100%;
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      padding: 8px 12px;
+      color: var(--text-main);
+      font-size: 0.82rem;
+      outline: none;
+      font-family: inherit;
+    }
+    .form-control:focus {
+      border-color: var(--cyan);
+    }
+
+    /* Command Palette (Cmd+K) */
+    .cmd-palette-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.7);
+      backdrop-filter: blur(8px);
+      display: none;
+      align-items: flex-start;
+      justify-content: center;
+      padding-top: 12vh;
+      z-index: 200;
+    }
+    .cmd-palette {
+      width: 100%;
+      max-width: 620px;
+      background: var(--bg-surface);
+      border: 1px solid var(--border-accent);
+      border-radius: var(--radius-md);
+      box-shadow: 0 25px 60px rgba(0,0,0,0.75);
+      overflow: hidden;
+    }
+    .cmd-search-box {
+      display: flex;
+      align-items: center;
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      gap: 10px;
+    }
+    .cmd-search-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-family: inherit;
+    }
+    .cmd-results {
+      max-height: 340px;
+      overflow-y: auto;
+      padding: 8px;
+    }
+    .cmd-item {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 0.84rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cmd-item:hover, .cmd-item.selected {
+      background: rgba(56, 189, 248, 0.1);
+      color: var(--cyan);
+    }
+
+    /* Action Approval Banner */
+    .approval-banner {
+      background: rgba(245, 158, 11, 0.1);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-radius: var(--radius-md);
+      padding: 14px 18px;
+      margin: 14px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .approval-text {
+      font-size: 0.84rem;
+      color: #fde68a;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Desktop Control Bar -->
+  <header class="top-bar">
+    <div class="top-brand" onclick="switchWorkspace('dashboard')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+        <polyline points="2 17 12 22 22 17"></polyline>
+        <polyline points="2 12 12 17 22 12"></polyline>
+      </svg>
+      JARVIS OS
+    </div>
+
+    <!-- Status & Telemetry Indicators -->
+    <div class="top-status-pills">
+      <div class="status-pill highlight">
+        <span class="status-dot pulse"></span>
+        <span id="top-host-badge">Darwin Apple Silicon</span>
+      </div>
+      <div class="status-pill" id="top-model-pill" title="Active LLM Engine">
+        <i data-lucide="cpu"></i>
+        <span id="top-model-name">Ollama Local</span>
+      </div>
+      <div class="status-pill" id="top-autonomy-pill" title="Security Permission Gate" onclick="cycleAutonomyMode()" style="cursor: pointer;">
+        <i data-lucide="shield-check"></i>
+        <span id="top-autonomy-name">AGENT_DECIDES</span>
+      </div>
+      <div class="status-pill highlight" id="top-audio-pill" title="Kokoro 82M Neural Audio Engine">
+        <i data-lucide="volume-2"></i>
+        <span>Kokoro 82M</span>
+      </div>
+    </div>
+
+    <!-- Top Action Controls -->
+    <div class="top-actions">
+      <button class="btn btn-secondary" onclick="testNeuralAudio()" title="Test Kokoro 82M Voice Playback">
+        <i data-lucide="volume-2"></i> Test Audio
+      </button>
+      <button class="btn btn-secondary" onclick="openCmdPalette()" title="Command Palette (Cmd+K)">
+        <i data-lucide="terminal"></i> ⌘K
+      </button>
+      <button class="btn btn-secondary" onclick="openSetupWizard()" title="Provider Configuration">
+        <i data-lucide="sliders"></i> Setup
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <div class="app-body">
+
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-section">
+        <div class="sidebar-label">Workspaces</div>
+        <div class="nav-item active" id="nav-dashboard" onclick="switchWorkspace('dashboard')">
+          <i data-lucide="layout-dashboard"></i> Desktop Dashboard
+        </div>
+        <div class="nav-item" id="nav-chat" onclick="switchWorkspace('chat')">
+          <i data-lucide="message-square"></i> Assistant & Tasks
+        </div>
+        <div class="nav-item" id="nav-voice" onclick="switchWorkspace('voice')">
+          <i data-lucide="mic"></i> Voice Station
+        </div>
+        <div class="nav-item" id="nav-tools" onclick="switchWorkspace('tools')">
+          <i data-lucide="wrench"></i> Tool Studio
+        </div>
+        <div class="nav-item" id="nav-memory" onclick="switchWorkspace('memory')">
+          <i data-lucide="brain"></i> Memory & Audit
+        </div>
+      </div>
+
+      <!-- Sessions List -->
+      <div class="sidebar-section" style="padding-bottom: 6px;">
+        <div class="sidebar-label">
+          <span>Active Sessions</span>
+          <button class="btn btn-secondary" style="padding: 2px 6px; font-size: 0.68rem;" onclick="createNewSession()">+ New</button>
+        </div>
+      </div>
+      <div class="session-list" id="session-items">
+        <div style="font-size: 0.76rem; color: var(--text-dim); padding: 8px;">Loading sessions...</div>
+      </div>
+
+      <!-- Quick Audio Setting Footer -->
+      <div class="sidebar-section" style="border-top: 1px solid var(--border-subtle); border-bottom: none; display: flex; align-items: center; justify-content: space-between;">
+        <span style="font-size: 0.74rem; color: var(--text-muted);">Spoken Responses</span>
+        <input type="checkbox" id="tts-toggle" checked style="accent-color: var(--cyan); cursor: pointer;" />
+      </div>
+    </aside>
+
+    <!-- Main Dynamic Content Area -->
+    <main class="content-area">
+
+      <!-- Pending Security Approvals Banner -->
+      <div id="pending-approval-banner" class="approval-banner" style="display: none;">
+        <div class="approval-text">
+          <strong>Security Confirmation Required:</strong> <span id="approval-tool-desc"></span>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <button class="btn btn-danger" onclick="resolveCurrentApproval(false)">Reject</button>
+          <button class="btn btn-primary" onclick="resolveCurrentApproval(true)">Approve & Run</button>
+        </div>
+      </div>
+
+      <!-- 1. WORKSPACE: Desktop Dashboard -->
+      <div class="workspace-pane active" id="pane-dashboard">
+        <div class="dashboard-container">
+          <div class="deck-header">
+            <h1 class="deck-title">Desktop Assistant Control Deck</h1>
+            <p class="deck-subtitle">Local-first autonomous personal assistant with bounded tool execution, neural speech, and deterministic permissions.</p>
+          </div>
+
+          <!-- Live Host Telemetry Grid -->
+          <div class="telemetry-grid">
+            <div class="telemetry-card">
+              <div class="telemetry-head">
+                <span>HOST OS & ARCH</span>
+                <i data-lucide="monitor"></i>
+              </div>
+              <div class="telemetry-value" id="telem-os">Darwin Apple Silicon</div>
+              <div class="telemetry-desc">macOS • Local Kernel Sandbox</div>
+            </div>
+            <div class="telemetry-card">
+              <div class="telemetry-head">
+                <span>LOCAL LLM PROVIDER</span>
+                <i data-lucide="cpu"></i>
+              </div>
+              <div class="telemetry-value" id="telem-llm">Ollama Active</div>
+              <div class="telemetry-desc">Zero external cloud egress</div>
+            </div>
+            <div class="telemetry-card">
+              <div class="telemetry-head">
+                <span>SPEECH ENGINE</span>
+                <i data-lucide="volume-2"></i>
+              </div>
+              <div class="telemetry-value" id="telem-voice">Kokoro 82M</div>
+              <div class="telemetry-desc">On-device 24kHz neural WAV</div>
+            </div>
+            <div class="telemetry-card">
+              <div class="telemetry-head">
+                <span>REGISTERED TOOLS</span>
+                <i data-lucide="wrench"></i>
+              </div>
+              <div class="telemetry-value" id="telem-tools">11 Tools Ready</div>
+              <div class="telemetry-desc">Deterministic permission gate</div>
+            </div>
+          </div>
+
+          <!-- Proactive Assistant Operations Deck -->
+          <div class="sidebar-label" style="margin-bottom: 12px; font-size: 0.74rem;">Proactive Desktop Operations</div>
+          <div class="proactive-grid">
+            
+            <div class="action-card" onclick="runDirectAction('system_diagnostics', {})">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="activity"></i></div>
+                <div>
+                  <div class="action-title">Run System Diagnostics</div>
+                  <div style="font-size: 0.72rem; color: var(--text-dim);">Safe • Read-only</div>
+                </div>
+              </div>
+              <div class="action-desc">Query CPU thread count, memory thresholds, architecture, and Python runtime metrics.</div>
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;">⚡ Run Diagnostic</button>
+            </div>
+
+            <div class="action-card" onclick="runDirectAction('datetime_now', {})">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="clock"></i></div>
+                <div>
+                  <div class="action-title">Check System Time & Date</div>
+                  <div style="font-size: 0.72rem; color: var(--text-dim);">Safe • Instant</div>
+                </div>
+              </div>
+              <div class="action-desc">Retrieve precise local ISO timestamp, timezone offset, and calendar verification.</div>
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;">⚡ Check Time</button>
+            </div>
+
+            <div class="action-card" onclick="triggerVoiceBriefing()">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="mic"></i></div>
+                <div>
+                  <div class="action-title">Spoken Assistant Briefing</div>
+                  <div style="font-size: 0.72rem; color: var(--text-dim);">Voice • Kokoro 82M</div>
+                </div>
+              </div>
+              <div class="action-desc">Jarvis verbally recites a live status report of your desktop, memory, and environment.</div>
+              <button class="btn btn-primary" style="width: 100%; justify-content: center;"><i data-lucide="mic"></i> Speak Briefing</button>
+            </div>
+
+            <div class="action-card" onclick="promptLiveWebSearch()">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="globe"></i></div>
+                <div>
+                  <div class="action-title">Live Web Search</div>
+                  <div style="font-size: 0.72rem; color: var(--cyan);">Google + DuckDuckGo • 0 API Keys</div>
+                </div>
+              </div>
+              <div class="action-desc">Scrapes live web search results (preferring Google, falling back to DuckDuckGo) without API keys.</div>
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;"><i data-lucide="search"></i> Search the Web</button>
+            </div>
+
+            <div class="action-card" onclick="runDirectAction('workspace_search_files', {pattern: '*.py'})">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="folder-search"></i></div>
+                <div>
+                  <div class="action-title">Scan Project Python Files</div>
+                  <div style="font-size: 0.72rem; color: var(--text-dim);">Safe • Workspace Sandbox</div>
+                </div>
+              </div>
+              <div class="action-desc">Traverse the workspace root and locate all active application Python scripts.</div>
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;"><i data-lucide="folder"></i> Scan Files</button>
+            </div>
+
+            <div class="action-card" onclick="switchWorkspace('tools')">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="wrench"></i></div>
+                <div>
+                  <div class="action-title">Tools & Workflows Studio</div>
+                  <div style="font-size: 0.72rem; color: var(--text-dim);">Interactive Runner</div>
+                </div>
+              </div>
+              <div class="action-desc">Inspect all 11 tool OpenAPI schemas, customize JSON arguments, and execute directly.</div>
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;"><i data-lucide="wrench"></i> Open Tools</button>
+            </div>
+
+            <div class="action-card" onclick="switchWorkspace('memory')">
+              <div class="action-head">
+                <div class="action-icon"><i data-lucide="shield-check"></i></div>
+                <div>
+                  <div class="action-title">Audit Log & Memory Hub</div>
+                  <div style="font-size: 0.72rem; color: var(--text-dim);">Security Audit</div>
+                </div>
+              </div>
+              <div class="action-desc">Review deterministic permission decisions, tool caller audits, and SQLite FTS5 memories.</div>
+              <button class="btn btn-secondary" style="width: 100%; justify-content: center;"><i data-lucide="shield"></i> Inspect Audit</button>
+            </div>
+
+          </div>
+
+          <!-- Live Result Output Drawer on Dashboard -->
+          <div id="deck-result-container" style="display: none; margin-top: 10px;">
+            <div class="sidebar-label" style="margin-bottom: 8px;">Execution Output</div>
+            <div class="tool-widget">
+              <div class="tool-widget-header">
+                <span id="deck-result-title">Result</span>
+                <span onclick="document.getElementById('deck-result-container').style.display='none'" style="cursor: pointer;">&times; Close</span>
+              </div>
+              <div class="tool-widget-body" id="deck-result-body"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 2. WORKSPACE: Assistant & Tasks Chat -->
+      <div class="workspace-pane" id="pane-chat">
+        <div class="chat-view">
+          <div class="chat-header">
+            <div class="chat-title-group">
+              <span class="chat-title" id="chat-session-title">Active Conversation</span>
+              <span class="status-pill" id="chat-mode-pill">AGENT_DECIDES</span>
+            </div>
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" onclick="clearCurrentChat()"><i data-lucide="trash-2"></i> Clear</button>
+              <button class="btn btn-secondary" onclick="switchWorkspace('voice')"><i data-lucide="mic"></i> Voice Mode</button>
+            </div>
+          </div>
+
+          <!-- Message History -->
+          <div class="messages-scroll" id="messages-container">
+            <div class="message-row">
+              <div class="avatar jarvis">J</div>
+              <div class="bubble jarvis">
+                Greetings. I am Jarvis, your personal desktop AI assistant. I have direct access to your local workspace, 11 sandboxed tools, and on-device neural voice. How may I assist you today?
+              </div>
+            </div>
+          </div>
+
+          <!-- Chat Input Bar -->
+          <div class="input-bar-container">
+            <form class="input-bar" id="chat-form" onsubmit="handleChatSubmit(event)">
+              <button type="button" class="btn btn-secondary" style="padding: 6px 10px;" onclick="switchWorkspace('voice')" title="Voice Station">
+                <i data-lucide="mic"></i>
+              </button>
+              <input type="text" class="main-input" id="chat-input" placeholder="Give an instruction, ask a question, or request a file task..." autocomplete="off" />
+              <button type="submit" class="btn btn-primary" id="chat-send-btn">
+                <i data-lucide="send"></i> Send
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. WORKSPACE: Holographic Voice Terminal -->
+      <div class="workspace-pane" id="pane-voice">
+        <div class="voice-station" id="voice-station">
+          
+          <div class="reactor-unit" onclick="toggleVoiceListening()">
+            <div class="reactor-ring ring-1"></div>
+            <div class="reactor-ring ring-2"></div>
+            <div class="reactor-ring ring-3"></div>
+            <div class="reactor-core">
+              <i data-lucide="mic" id="reactor-mic-icon"></i>
+            </div>
+          </div>
+
+          <!-- Dynamic Waveform Frequency Bars -->
+          <div class="waveform-visualizer" id="wave-bars">
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+            <div class="wave-bar"></div>
+          </div>
+
+          <div class="voice-title">JARVIS NEURAL VOICE HUD</div>
+          <div class="voice-status-text" id="voice-status-label">Click Core or Press Spacebar to Speak</div>
+
+          <div class="voice-transcript-card" id="voice-transcript">
+            <em>Kokoro 82M high-fidelity neural speech active. Awaiting your voice command...</em>
+          </div>
+
+          <div style="margin-top: 24px; display: flex; gap: 12px;">
+            <button class="btn btn-secondary" onclick="triggerInterrupt()">
+              <i data-lucide="square"></i> Barge-in Interruption
+            </button>
+            <button class="btn btn-secondary" onclick="testNeuralAudio()">
+              <i data-lucide="volume-2"></i> Test Audio Playback
+            </button>
+            <button class="btn btn-primary" onclick="switchWorkspace('chat')">
+              <i data-lucide="message-square"></i> Open Chat
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- 4. WORKSPACE: Tools & Workflows Studio -->
+      <div class="workspace-pane" id="pane-tools">
+        <div class="tools-workspace">
+          <div class="deck-header">
+            <h1 class="deck-title">Tools & Execution Studio</h1>
+            <p class="deck-subtitle">All 11 built-in capabilities registered in the orchestrator. Test run any tool with live JSON parameters.</p>
+          </div>
+          <div class="tools-grid" id="tools-container">
+            <div style="color: var(--text-muted); font-size: 0.85rem;">Loading registered tools...</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. WORKSPACE: Memory & Security Audit Hub -->
+      <div class="workspace-pane" id="pane-memory">
+        <div class="dashboard-container">
+          <div class="deck-header" style="display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <h1 class="deck-title">Memory & Security Audit Hub</h1>
+              <p class="deck-subtitle">Structured user memories persisted in SQLite FTS5 and deterministic security audit records.</p>
+            </div>
+            <button class="btn btn-primary" onclick="openAddMemoryModal()">+ Add Memory</button>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            
+            <!-- Memory Store Column -->
+            <div>
+              <div class="sidebar-label" style="margin-bottom: 10px;">Persistent Long-Term Memories</div>
+              <div class="form-group">
+                <input type="text" class="form-control" id="memory-search-input" placeholder="Search memories via FTS5..." oninput="searchMemories(this.value)" />
+              </div>
+              <div id="memories-container" style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="color: var(--text-dim); font-size: 0.78rem;">Loading memories...</div>
+              </div>
+            </div>
+
+            <!-- Audit Trail Column -->
+            <div>
+              <div class="sidebar-label" style="margin-bottom: 10px;">Security Decision Audit Stream</div>
+              <div id="audit-logs-container" style="display: flex; flex-direction: column; gap: 8px; max-height: 520px; overflow-y: auto;">
+                <div style="color: var(--text-dim); font-size: 0.78rem;">Loading audit logs...</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Command Palette Modal (Cmd+K) -->
+  <div class="cmd-palette-overlay" id="cmd-palette-overlay" onclick="closeCmdPalette(event)">
+    <div class="cmd-palette" onclick="event.stopPropagation()">
+      <div class="cmd-search-box">
+        <i data-lucide="search" style="color: var(--text-dim);"></i>
+        <input type="text" class="cmd-search-input" id="cmd-search-input" placeholder="Type a command or search tools (e.g. 'voice', 'diagnostic', 'test audio')..." oninput="filterCmdPalette(this.value)" />
+      </div>
+      <div class="cmd-results" id="cmd-results">
+        <div class="cmd-item" onclick="execCmdAction('voice')">
+          <span><i data-lucide="mic"></i> Open Voice Station</span>
+          <kbd style="font-family: var(--font-mono); font-size: 0.7rem; color: var(--text-dim);">Space</kbd>
+        </div>
+        <div class="cmd-item" onclick="execCmdAction('test_audio')">
+          <span><i data-lucide="volume-2"></i> Test Kokoro 82M Audio Playback</span>
+          <span style="font-size: 0.7rem; color: var(--cyan);">Neural WAV</span>
+        </div>
+        <div class="cmd-item" onclick="execCmdAction('diagnostic')">
+          <span><i data-lucide="activity"></i> Run Host System Diagnostics</span>
+          <span style="font-size: 0.7rem; color: var(--emerald);">Safe</span>
+        </div>
+        <div class="cmd-item" onclick="execCmdAction('scan_files')">
+          <span><i data-lucide="folder-search"></i> Scan Workspace Python Files</span>
+          <span style="font-size: 0.7rem; color: var(--text-dim);">*.py</span>
+        </div>
+        <div class="cmd-item" onclick="execCmdAction('briefing')">
+          <span><i data-lucide="volume-2"></i> Play Spoken Assistant Briefing</span>
+          <span style="font-size: 0.7rem; color: var(--purple);">Spoken</span>
+        </div>
+        <div class="cmd-item" onclick="execCmdAction('setup')">
+          <span><i data-lucide="sliders"></i> Open Provider Setup Wizard</span>
+          <span style="font-size: 0.7rem; color: var(--text-dim);">Config</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Direct Tool Runner Modal -->
+  <div class="modal-overlay" id="tool-runner-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="play" style="color: var(--cyan);"></i>
+          <span id="runner-modal-title">Execute Tool</span>
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="closeToolRunner()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;" id="runner-modal-desc"></div>
+        <div class="form-group">
+          <label class="form-label">Arguments (JSON Object)</label>
+          <textarea class="form-control" id="runner-modal-args" rows="4" style="font-family: var(--font-mono); font-size: 0.8rem;"></textarea>
+        </div>
+        <div id="runner-output-container" style="display: none; margin-top: 12px;">
+          <label class="form-label">Output Result</label>
+          <div style="background: var(--bg-base); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px; font-family: var(--font-mono); font-size: 0.78rem; color: #a7f3d0; max-height: 220px; overflow-y: auto; white-space: pre-wrap;" id="runner-output-text"></div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeToolRunner()">Cancel</button>
+        <button class="btn btn-primary" onclick="dispatchToolExecution()"><i data-lucide="zap"></i> Execute Tool</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Memory Modal -->
+  <div class="modal-overlay" id="add-memory-modal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="brain" style="color: var(--purple);"></i> Add Structured Memory
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="closeAddMemoryModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Category</label>
+          <select class="form-control" id="memory-cat">
+            <option value="user_preference">User Preference</option>
+            <option value="fact">Fact</option>
+            <option value="episodic">Episodic (Task Event)</option>
+            <option value="procedural">Procedural (Workflow)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Content</label>
+          <textarea class="form-control" id="memory-content" rows="3" placeholder="Enter persistent fact or user preference..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeAddMemoryModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="submitNewMemory()">Save Memory</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Setup Wizard Modal -->
+  <div class="modal-overlay" id="setup-modal">
+    <div class="modal-card" style="max-width: 620px;">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i data-lucide="sliders" style="color: var(--cyan);"></i> Initial Setup & Provider Config
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 8px;" onclick="closeSetupWizard()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label">Operating Inference Mode</label>
+          <select class="form-control" id="setup-inf-mode">
+            <option value="local">Local (On-Device Inference)</option>
+            <option value="cloud">Cloud (Hosted APIs)</option>
+            <option value="hybrid">Hybrid (Local + Cloud Routing)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Autonomy & Permission Gate</label>
+          <select class="form-control" id="setup-autonomy">
+            <option value="agent_decides">Agent Decides (Prompt on mutating actions)</option>
+            <option value="auto">Auto (Full Autonomy within sandbox)</option>
+            <option value="plan">Plan (Propose steps without mutating)</option>
+            <option value="read_only">Read-Only (Reject any modifications)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Local LLM Auto-Detection</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="text" class="form-control" id="setup-custom-endpoint" placeholder="Custom URL (e.g. http://localhost:11434/v1)" />
+            <button class="btn btn-secondary" onclick="runAutoDetect()"><i data-lucide="refresh-cw"></i> Detect</button>
+          </div>
+          <div id="detect-status" style="font-size: 0.78rem; color: var(--cyan); margin-top: 6px;"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cloud Provider (Optional)</label>
+          <select class="form-control" id="setup-cloud-provider">
+            <option value="">None / Local-Only</option>
+            <option value="openai">OpenAI (GPT-4o, o3-mini)</option>
+            <option value="anthropic">Anthropic Claude</option>
+            <option value="gemini">Google Gemini</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Cloud API Key (Stored locally in .env)</label>
+          <input type="password" class="form-control" id="setup-api-key" placeholder="Enter API key..." />
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeSetupWizard()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSetupConfig()"><i data-lucide="check"></i> Save & Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Audio Element for Neural Kokoro Synthesis -->
+  <audio id="tts-audio-player" style="display: none;"></audio>
+
+  <script>
+    // State variables
+    let currentSessionId = null;
+    let registeredTools = [];
+    let activeRunnerTool = null;
+    let isVoiceListening = false;
+    let speechRecognition = null;
+    let pendingApprovalToken = null;
+    let audioContextUnlocked = false;
+
+    // Unlocking Audio Context on First Interaction
+    function unlockAudio() {
+      if (!audioContextUnlocked) {
+        try {
+          const ctx = new (window.AudioContext || window.webkitAudioContext)();
+          if (ctx.state === 'suspended') ctx.resume();
+          audioContextUnlocked = true;
+        } catch (e) {}
+      }
+    }
+    window.addEventListener('click', unlockAudio, { once: true });
+    window.addEventListener('keydown', unlockAudio, { once: true });
+
+    // Workspace Switching
+    function switchWorkspace(name) {
+      document.querySelectorAll('.workspace-pane').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+
+      const pane = document.getElementById(`pane-${name}`);
+      const nav = document.getElementById(`nav-${name}`);
+      if (pane) pane.classList.add('active');
+      if (nav) nav.classList.add('active');
+
+      if (name === 'tools') loadTools();
+      if (name === 'memory') { loadMemories(); loadAuditLogs(); }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    // Initialize App
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (window.lucide) lucide.createIcons();
+      await loadHealthAndTelemetry();
+      await loadSessions();
+      await loadTools();
+      setupSpeechRecognition();
+      setupKeyboardShortcuts();
+      checkPendingApprovals();
+      setInterval(checkPendingApprovals, 3000);
+    });
+
+    // Health and Telemetry
+    async function loadHealthAndTelemetry() {
+      try {
+        const res = await fetch('/api/health');
+        const data = await res.json();
+        document.getElementById('top-autonomy-name').innerText = data.autonomy_mode.toUpperCase();
+        document.getElementById('telem-llm').innerText = data.inference_mode === 'local' ? 'Ollama / Local LLM' : 'Cloud Hybrid';
+        document.getElementById('telem-tools').innerText = `${registeredTools.length || 11} Tools Ready`;
+      } catch (e) {
+        console.warn('Health check error:', e);
+      }
+    }
+
+    // Autonomy Mode Cycler
+    async function cycleAutonomyMode() {
+      const modes = ['agent_decides', 'auto', 'plan', 'read_only'];
+      const current = document.getElementById('top-autonomy-name').innerText.toLowerCase();
+      const next = modes[(modes.indexOf(current) + 1) % modes.length];
+      try {
+        await fetch('/api/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ JARVIS_AUTONOMY_MODE: next })
+        });
+        document.getElementById('top-autonomy-name').innerText = next.toUpperCase();
+        document.getElementById('chat-mode-pill').innerText = next.toUpperCase();
+      } catch (e) {}
+    }
+
+    // Sessions Management
+    async function loadSessions() {
+      try {
+        const res = await fetch('/api/sessions');
+        const sessions = await res.json();
+        const container = document.getElementById('session-items');
+        container.innerHTML = '';
+        if (!sessions.length) {
+          container.innerHTML = '<div style="font-size: 0.74rem; color: var(--text-dim); padding: 6px;">No sessions yet.</div>';
+          return;
+        }
+        sessions.forEach(s => {
+          const card = document.createElement('div');
+          card.className = `session-card ${s.session_id === currentSessionId ? 'active' : ''}`;
+          card.innerHTML = `<span>${s.title || 'Untitled Session'}</span>`;
+          card.onclick = () => selectSession(s.session_id, s.title);
+          container.appendChild(card);
+        });
+        if (!currentSessionId && sessions.length > 0) {
+          selectSession(sessions[0].session_id, sessions[0].title);
+        }
+      } catch (e) {}
+    }
+
+    async function createNewSession() {
+      const res = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title: 'New Workspace Task' })
+      });
+      const data = await res.json();
+      currentSessionId = data.session_id;
+      document.getElementById('messages-container').innerHTML = '';
+      appendAssistantMessage('New workspace session initialized. All 11 tools and Kokoro neural audio ready.');
+      await loadSessions();
+      switchWorkspace('chat');
+    }
+
+    async function selectSession(sid, title) {
+      currentSessionId = sid;
+      document.getElementById('chat-session-title').innerText = title || 'Active Conversation';
+      document.querySelectorAll('.session-card').forEach(c => c.classList.remove('active'));
+      const activeCard = Array.from(document.querySelectorAll('.session-card')).find(c => c.innerText.includes(title));
+      if (activeCard) activeCard.classList.add('active');
+
+      try {
+        const res = await fetch(`/api/sessions/${sid}/messages`);
+        const messages = await res.json();
+        const container = document.getElementById('messages-container');
+        container.innerHTML = '';
+        if (!messages.length) {
+          appendAssistantMessage('Session ready. How can I assist you with your code, system, or research?');
+        } else {
+          messages.forEach(m => {
+            if (m.role === 'user') appendUserMessage(m.content);
+            else if (m.role === 'assistant') appendAssistantMessage(m.content);
+          });
+        }
+      } catch (e) {}
+    }
+
+    function clearCurrentChat() {
+      document.getElementById('messages-container').innerHTML = '';
+      appendAssistantMessage('Chat buffer cleared. Session state preserved.');
+    }
+
+    // Message Rendering
+    function appendUserMessage(text) {
+      const container = document.getElementById('messages-container');
+      const row = document.createElement('div');
+      row.className = 'message-row user';
+      row.innerHTML = `
+        <div class="avatar user">You</div>
+        <div class="bubble user">${escapeHtml(text)}</div>
+      `;
+      container.appendChild(row);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function appendAssistantMessage(text = '') {
+      const container = document.getElementById('messages-container');
+      const row = document.createElement('div');
+      row.className = 'message-row';
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble jarvis';
+      bubble.innerHTML = formatMarkdown(text);
+      row.innerHTML = `<div class="avatar jarvis">J</div>`;
+      row.appendChild(bubble);
+      container.appendChild(row);
+      container.scrollTop = container.scrollHeight;
+      return bubble;
+    }
+
+    function appendToolCard(toolName, args) {
+      const container = document.getElementById('messages-container');
+      const widget = document.createElement('div');
+      widget.className = 'tool-widget';
+      widget.innerHTML = `
+        <div class="tool-widget-header" onclick="this.nextElementSibling.style.display = this.nextElementSibling.style.display==='none'?'block':'none'">
+          <span>⚡ Invoking Tool: <strong>${escapeHtml(toolName)}</strong></span>
+          <span>▼</span>
+        </div>
+        <div class="tool-widget-body">Args: ${escapeHtml(JSON.stringify(args, null, 2))}\nRunning bounded execution...</div>
+      `;
+      container.appendChild(widget);
+      container.scrollTop = container.scrollHeight;
+      return widget;
+    }
+
+    function updateToolCard(widget, output) {
+      if (!widget) return;
+      const body = widget.querySelector('.tool-widget-body');
+      if (body) {
+        body.innerHTML += `\n\nResult:\n${escapeHtml(JSON.stringify(output, null, 2))}`;
+      }
+    }
+
+    // Chat Submission & SSE Streaming
+    async function handleChatSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('chat-input');
+      const msg = input.value.trim();
+      if (!msg) return;
+
+      unlockAudio();
+      appendUserMessage(msg);
+      input.value = '';
+
+      if (!currentSessionId) {
+        const res = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: msg.slice(0, 30) })
+        });
+        const data = await res.json();
+        currentSessionId = data.session_id;
+      }
+
+      let bubble = null;
+      let activeToolWidget = null;
+      let fullResponseText = '';
+
+      try {
+        const response = await fetch('/api/chat/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: msg, session_id: currentSessionId })
+        });
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = '';
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const event = JSON.parse(line.slice(6));
+                if (event.event_type === 'tool_call') {
+                  activeToolWidget = appendToolCard(event.data.tool_call.tool_name, event.data.tool_call.arguments);
+                } else if (event.event_type === 'tool_result') {
+                  updateToolCard(activeToolWidget, event.data.tool_result?.output);
+                } else if (event.event_type === 'token') {
+                  if (!bubble) bubble = appendAssistantMessage('');
+                  fullResponseText += event.data.delta || '';
+                  bubble.innerHTML = formatMarkdown(fullResponseText);
+                } else if (event.event_type === 'done') {
+                  const finalTxt = event.data.content || fullResponseText;
+                  if (!bubble && finalTxt) bubble = appendAssistantMessage(finalTxt);
+                  fullResponseText = finalTxt || fullResponseText;
+                  playSpeechAudio(fullResponseText);
+                  loadSessions();
+                  loadAuditLogs();
+                } else if (event.event_type === 'error') {
+                  if (!bubble) bubble = appendAssistantMessage('');
+                  bubble.innerHTML += `<div style="color: var(--rose); margin-top: 6px;">[Error: ${event.data.error}]</div>`;
+                }
+              } catch (pe) {}
+            }
+          }
+        }
+      } catch (err) {
+        if (!bubble) bubble = appendAssistantMessage('');
+        bubble.innerHTML = `<span style="color: var(--rose);">Execution error: ${err.message}</span>`;
+      }
+    }
+
+    function promptLiveWebSearch() {
+      const q = prompt("Enter search query (e.g. 'Apple stock news' or 'quantum computing'):");
+      if (q && q.trim()) {
+        runDirectAction('web_search', { query: q.trim(), limit: 4, prefer_engine: 'google' });
+      }
+    }
+
+    // Direct Action Execution from Dashboard
+    async function runDirectAction(toolName, args) {
+      unlockAudio();
+      const container = document.getElementById('deck-result-container');
+      const body = document.getElementById('deck-result-body');
+      const title = document.getElementById('deck-result-title');
+      container.style.display = 'block';
+      title.innerText = `Executing: ${toolName}`;
+      body.innerText = 'Invoking tool through deterministic permission gate...';
+
+      try {
+        const res = await fetch('/api/tools/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool_name: toolName, arguments: args, session_id: currentSessionId })
+        });
+        const data = await res.json();
+        body.innerText = JSON.stringify(data.output || data, null, 2);
+        checkPendingApprovals();
+        loadAuditLogs();
+      } catch (e) {
+        body.innerText = `Error: ${e.message}`;
+      }
+    }
+
+    // Spoken Briefing
+    async function triggerVoiceBriefing() {
+      unlockAudio();
+      switchWorkspace('voice');
+      const transcript = document.getElementById('voice-transcript');
+      transcript.innerHTML = '<em>Generating live spoken assistant briefing...</em>';
+      const prompt = "Please state your identity, the current system date and time, and confirm all local tools are ready in two concise sentences.";
+      
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: prompt, session_id: currentSessionId })
+        });
+        const data = await res.json();
+        transcript.innerText = data.response;
+        playSpeechAudio(data.response);
+      } catch (e) {
+        transcript.innerText = "Briefing error: " + e.message;
+      }
+    }
+
+    // Neural Audio Synthesizer (Kokoro 82M + Fallback)
+    async function playSpeechAudio(text) {
+      if (!document.getElementById('tts-toggle').checked) return;
+      const clean = text.replace(/[*_#`[\]()]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (!clean) return;
+
+      const voiceStation = document.getElementById('voice-station');
+      voiceStation.classList.add('speaking');
+
+      // 1. Try Kokoro 82M On-Device Neural Synthesis
+      try {
+        const res = await fetch('/api/voice/synthesize', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: clean.slice(0, 300) })
+        });
+
+        if (res.ok) {
+          const synthType = res.headers.get('x-audio-synthesized') || '';
+          const blob = await res.blob();
+          if (blob.size > 2000) {
+            const url = URL.createObjectURL(blob);
+            const audio = document.getElementById('tts-audio-player');
+            audio.src = url;
+            audio.onended = () => voiceStation.classList.remove('speaking');
+            const playPromise = audio.play();
+            if (playPromise !== undefined) {
+              playPromise.catch(err => {
+                console.warn('Audio play prevented by browser, fallback to SpeechSynthesis:', err);
+                speakFallback(clean);
+              });
+            }
+            return;
+          }
+        }
+      } catch (e) {
+        console.warn('Kokoro synthesis error, using fallback:', e);
+      }
+
+      // 2. Seamless Fallback: Native Browser SpeechSynthesis
+      speakFallback(clean);
+    }
+
+    function speakFallback(text) {
+      const voiceStation = document.getElementById('voice-station');
+      if (!('speechSynthesis' in window)) {
+        voiceStation.classList.remove('speaking');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const utterance = new SpeechSynthesisUtterance(text);
+      const voices = window.speechSynthesis.getVoices();
+      const naturalVoice = voices.find(v => v.lang.startsWith('en') && (v.name.includes('Samantha') || v.name.includes('Siri') || v.name.includes('Google') || v.name.includes('Natural') || v.name.includes('Alex')));
+      if (naturalVoice) utterance.voice = naturalVoice;
+      utterance.rate = 1.05;
+      utterance.volume = 1.0;
+      utterance.onstart = () => voiceStation.classList.add('speaking');
+      utterance.onend = () => voiceStation.classList.remove('speaking');
+      utterance.onerror = () => voiceStation.classList.remove('speaking');
+      window.speechSynthesis.speak(utterance);
+    }
+
+    // Direct Test Audio Button
+    function testNeuralAudio() {
+      unlockAudio();
+      playSpeechAudio("Jarvis audio systems online. Kokoro 82M neural model is active.");
+    }
+
+    // Interruption
+    async function triggerInterrupt() {
+      await fetch('/api/voice/interrupt', { method: 'POST' });
+      const audio = document.getElementById('tts-audio-player');
+      audio.pause();
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      document.getElementById('voice-station').classList.remove('speaking');
+      document.getElementById('voice-status-label').innerText = 'Interrupted';
+    }
+
+    // Speech Recognition
+    function setupSpeechRecognition() {
+      const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRec) return;
+      speechRecognition = new SpeechRec();
+      speechRecognition.continuous = false;
+      speechRecognition.interimResults = true;
+      speechRecognition.lang = 'en-US';
+
+      speechRecognition.onstart = () => {
+        isVoiceListening = true;
+        document.getElementById('voice-station').classList.add('listening');
+        document.getElementById('voice-status-label').innerText = 'Listening to your voice...';
+      };
+
+      speechRecognition.onresult = (e) => {
+        let transcript = '';
+        for (let i = e.resultIndex; i < e.results.length; i++) {
+          transcript += e.results[i][0].transcript;
+        }
+        document.getElementById('voice-transcript').innerText = `You: "${transcript}"`;
+        if (e.results[0].isFinal) {
+          stopVoiceListening();
+          executeVoiceQuery(transcript);
+        }
+      };
+
+      speechRecognition.onend = () => {
+        stopVoiceListening();
+      };
+    }
+
+    function toggleVoiceListening() {
+      unlockAudio();
+      if (isVoiceListening) stopVoiceListening();
+      else startVoiceListening();
+    }
+
+    function startVoiceListening() {
+      if (!speechRecognition) {
+        alert('Web Speech Recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
+        return;
+      }
+      try { speechRecognition.start(); } catch (e) {}
+    }
+
+    function stopVoiceListening() {
+      isVoiceListening = false;
+      document.getElementById('voice-station').classList.remove('listening');
+      document.getElementById('voice-status-label').innerText = 'Click Core or Press Spacebar to Speak';
+      if (speechRecognition) speechRecognition.stop();
+    }
+
+    async function executeVoiceQuery(text) {
+      if (!text.trim()) return;
+      document.getElementById('voice-status-label').innerText = 'Jarvis is thinking...';
+      try {
+        const res = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text, session_id: currentSessionId })
+        });
+        const data = await res.json();
+        document.getElementById('voice-transcript').innerText = `Jarvis: "${data.response}"`;
+        document.getElementById('voice-status-label').innerText = 'Speaking response...';
+        playSpeechAudio(data.response);
+      } catch (e) {
+        document.getElementById('voice-transcript').innerText = `Error: ${e.message}`;
+      }
+    }
+
+    // Keyboard Shortcuts
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+          e.preventDefault();
+          openCmdPalette();
+        }
+        if (e.code === 'Space' && document.getElementById('pane-voice').classList.contains('active')) {
+          if (document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            toggleVoiceListening();
+          }
+        }
+        if (e.key === 'Escape') {
+          closeCmdPalette();
+          closeToolRunner();
+          closeAddMemoryModal();
+          closeSetupWizard();
+        }
+      });
+    }
+
+    // Command Palette
+    function openCmdPalette() {
+      const overlay = document.getElementById('cmd-palette-overlay');
+      overlay.style.display = 'flex';
+      const input = document.getElementById('cmd-search-input');
+      input.value = '';
+      input.focus();
+      filterCmdPalette('');
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeCmdPalette(e) {
+      document.getElementById('cmd-palette-overlay').style.display = 'none';
+    }
+
+    function filterCmdPalette(q) {
+      const items = document.querySelectorAll('.cmd-item');
+      items.forEach(it => {
+        const text = it.innerText.toLowerCase();
+        it.style.display = text.includes(q.toLowerCase()) ? 'flex' : 'none';
+      });
+    }
+
+    function execCmdAction(act) {
+      closeCmdPalette();
+      if (act === 'voice') switchWorkspace('voice');
+      else if (act === 'test_audio') testNeuralAudio();
+      else if (act === 'diagnostic') runDirectAction('system_diagnostics', {});
+      else if (act === 'scan_files') runDirectAction('workspace_search_files', { pattern: '*.py' });
+      else if (act === 'briefing') triggerVoiceBriefing();
+      else if (act === 'setup') openSetupWizard();
+    }
+
+    // Tool Studio Loader
+    async function loadTools() {
+      try {
+        const res = await fetch('/api/tools');
+        registeredTools = await res.json();
+        const container = document.getElementById('tools-container');
+        container.innerHTML = '';
+
+        registeredTools.forEach(t => {
+          const fn = t.function || t;
+          const isMutating = ['workspace_write_file', 'workspace_delete_file', 'execute_shell_command'].includes(fn.name);
+          const badgeClass = isMutating ? 'badge-mutating' : 'badge-safe';
+          const badgeText = isMutating ? 'Mutating Action' : 'Read-Only Safe';
+
+          const card = document.createElement('div');
+          card.className = 'tool-item-card';
+          card.innerHTML = `
+            <div>
+              <div class="tool-head">
+                <span class="tool-name">${escapeHtml(fn.name)}</span>
+                <span class="tool-badge ${badgeClass}">${badgeText}</span>
+              </div>
+              <div style="font-size: 0.78rem; color: var(--text-muted); line-height: 1.4; margin-bottom: 14px;">
+                ${escapeHtml(fn.description || 'No description provided.')}
+              </div>
+            </div>
+            <button class="btn btn-secondary" style="width: 100%; justify-content: center;" onclick="openToolRunner('${escapeHtml(fn.name)}')">
+              <i data-lucide="play"></i> Test Run
+            </button>
+          `;
+          container.appendChild(card);
+        });
+        if (window.lucide) lucide.createIcons();
+      } catch (e) {}
+    }
+
+    function openToolRunner(toolName) {
+      const t = registeredTools.find(item => (item.function?.name || item.name) === toolName);
+      if (!t) return;
+      activeRunnerTool = t.function || t;
+      document.getElementById('runner-modal-title').innerText = `Execute: ${activeRunnerTool.name}`;
+      document.getElementById('runner-modal-desc').innerText = activeRunnerTool.description || '';
+      
+      const sampleArgs = {};
+      const props = activeRunnerTool.parameters?.properties || {};
+      for (const [k, v] of Object.entries(props)) {
+        sampleArgs[k] = v.default !== undefined ? v.default : (v.type === 'string' ? '' : 0);
+      }
+      document.getElementById('runner-modal-args').value = JSON.stringify(sampleArgs, null, 2);
+      document.getElementById('runner-output-container').style.display = 'none';
+      document.getElementById('tool-runner-modal').style.display = 'flex';
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function closeToolRunner() {
+      document.getElementById('tool-runner-modal').style.display = 'none';
+    }
+
+    async function dispatchToolExecution() {
+      const out = document.getElementById('runner-output-text');
+      document.getElementById('runner-output-container').style.display = 'block';
+      out.innerText = 'Invoking tool through deterministic permission gate...';
+
+      let args = {};
+      try { args = JSON.parse(document.getElementById('runner-modal-args').value); }
+      catch (e) { out.innerText = 'Invalid JSON arguments: ' + e; return; }
+
+      try {
+        const res = await fetch('/api/tools/execute', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool_name: activeRunnerTool.name, arguments: args, session_id: currentSessionId })
+        });
+        const data = await res.json();
+        out.innerText = JSON.stringify(data, null, 2);
+        checkPendingApprovals();
+        loadAuditLogs();
+      } catch (e) {
+        out.innerText = 'Error: ' + e.message;
+      }
+    }
+
+    // Memory Store & Audit Stream
+    async function loadMemories(q = '') {
+      const url = q ? `/api/memories?query=${encodeURIComponent(q)}` : '/api/memories';
+      const res = await fetch(url);
+      const memories = await res.json();
+      const container = document.getElementById('memories-container');
+      container.innerHTML = '';
+      if (!memories.length) {
+        container.innerHTML = '<div style="font-size: 0.78rem; color: var(--text-dim);">No memories stored yet.</div>';
+        return;
+      }
+      memories.forEach(m => {
+        const item = document.createElement('div');
+        item.style.cssText = 'background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 10px 14px;';
+        item.innerHTML = `
+          <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: var(--cyan); margin-bottom: 4px;">
+            <span>${m.category}</span>
+            <span>Confidence: ${(m.confidence * 100).toFixed(0)}%</span>
+          </div>
+          <div style="font-size: 0.82rem; color: var(--text-main);">${escapeHtml(m.content)}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function searchMemories(q) { loadMemories(q); }
+
+    function openAddMemoryModal() { document.getElementById('add-memory-modal').style.display = 'flex'; }
+    function closeAddMemoryModal() { document.getElementById('add-memory-modal').style.display = 'none'; }
+
+    async function submitNewMemory() {
+      const cat = document.getElementById('memory-cat').value;
+      const content = document.getElementById('memory-content').value.trim();
+      if (!content) return;
+      await fetch('/api/memories', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ category: cat, content: content, confidence: 1.0 })
+      });
+      document.getElementById('memory-content').value = '';
+      closeAddMemoryModal();
+      loadMemories();
+    }
+
+    async function loadAuditLogs() {
+      try {
+        const res = await fetch('/api/audit/logs');
+        const logs = await res.json();
+        const container = document.getElementById('audit-logs-container');
+        container.innerHTML = '';
+        if (!logs.length) {
+          container.innerHTML = '<div style="font-size: 0.78rem; color: var(--text-dim);">No audit records recorded yet.</div>';
+          return;
+        }
+        logs.slice(-20).reverse().forEach(l => {
+          const isAllowed = l.decision === 'allow';
+          const item = document.createElement('div');
+          item.style.cssText = 'background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 8px 12px; font-family: var(--font-mono); font-size: 0.74rem;';
+          item.innerHTML = `
+            <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+              <span style="color: ${isAllowed ? 'var(--emerald)' : 'var(--amber)'}; font-weight: 600;">${l.decision.toUpperCase()}</span>
+              <span style="color: var(--text-dim);">${l.action_type}</span>
+            </div>
+            <div style="color: var(--text-main);">${escapeHtml(l.action_target)}</div>
+          `;
+          container.appendChild(item);
+        });
+      } catch (e) {}
+    }
+
+    // Pending Approvals Check
+    async function checkPendingApprovals() {
+      try {
+        const res = await fetch('/api/approvals');
+        const approvals = await res.json();
+        const banner = document.getElementById('pending-approval-banner');
+        if (approvals && approvals.length > 0) {
+          const req = approvals[0];
+          pendingApprovalToken = req.request_id;
+          const targetStr = req.target || req.resource_path || (req.parameters?.command || req.parameters?.file_path) || req.tool_name;
+          document.getElementById('approval-tool-desc').innerText = `${req.action_type || 'MUTATING'} on '${targetStr}' (${req.tool_name})`;
+          banner.style.display = 'flex';
+        } else {
+          banner.style.display = 'none';
+          pendingApprovalToken = null;
+        }
+      } catch (e) {}
+    }
+
+    async function resolveCurrentApproval(approved) {
+      if (!pendingApprovalToken) return;
+      const token = pendingApprovalToken;
+      try {
+        const res = await fetch(`/api/approvals/${token}/resolve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approved: approved })
+        });
+        const data = await res.json();
+        document.getElementById('pending-approval-banner').style.display = 'none';
+        pendingApprovalToken = null;
+
+        if (data.tool_result) {
+          const out = data.tool_result;
+          appendAssistantMessage(`Security confirmation granted. Tool **${out.tool_name}** executed.\n\nStatus: \`${out.status}\`\n\n\`\`\`json\n${JSON.stringify(out.output || out.error_message, null, 2)}\n\`\`\``);
+        } else if (!approved) {
+          appendAssistantMessage(`Security action rejected by user. The requested action was canceled.`);
+        }
+        checkPendingApprovals();
+        loadAuditLogs();
+      } catch (e) {
+        console.error('Approval resolution error:', e);
+      }
+    }
+
+    // Setup Wizard
+    function openSetupWizard() { document.getElementById('setup-modal').style.display = 'flex'; }
+    function closeSetupWizard() { document.getElementById('setup-modal').style.display = 'none'; }
+
+    async function runAutoDetect() {
+      const status = document.getElementById('detect-status');
+      const customUrl = document.getElementById('setup-custom-endpoint').value.trim();
+      status.innerText = 'Detecting local engines (Ollama, LM Studio, llama.cpp)...';
+      try {
+        const res = await fetch('/api/detect', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ custom_endpoint: customUrl || null })
+        });
+        const data = await res.json();
+        if (data.available_providers && data.available_providers.length > 0) {
+          status.innerText = `Detected ${data.available_providers.length} engine(s): ${data.available_providers.map(p => p.provider).join(', ')}`;
+        } else {
+          status.innerText = 'No local engines detected. Verify Ollama or LM Studio is serving.';
+        }
+      } catch (e) {
+        status.innerText = 'Detection error: ' + e.message;
+      }
+    }
+
+    async function saveSetupConfig() {
+      const mode = document.getElementById('setup-inf-mode').value;
+      const autonomy = document.getElementById('setup-autonomy').value;
+      const provider = document.getElementById('setup-cloud-provider').value;
+      const apiKey = document.getElementById('setup-api-key').value;
+
+      await fetch('/api/config', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          JARVIS_INFERENCE_MODE: mode,
+          JARVIS_AUTONOMY_MODE: autonomy,
+          ...(provider ? { JARVIS_PRIMARY_PROVIDER: provider } : {}),
+          ...(apiKey ? { OPENAI_API_KEY: apiKey } : {})
+        })
+      });
+      closeSetupWizard();
+      loadHealthAndTelemetry();
+    }
+
+    // Utilities
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function formatMarkdown(text) {
+      if (!text) return '';
+      let escaped = escapeHtml(text);
+      // Code blocks
+      escaped = escaped.replace(/```([\s\S]*?)```/g, '<pre style="background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); padding: 10px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-size: 0.8rem; overflow-x: auto; margin: 8px 0;"><code>$1</code></pre>');
+      // Inline code
+      escaped = escaped.replace(/`([^`]+)`/g, '<code style="background: rgba(255,255,255,0.08); padding: 2px 6px; border-radius: 4px; font-family: var(--font-mono); font-size: 0.82rem; color: var(--cyan);">$1</code>');
+      // Bold
+      escaped = escaped.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+      // Line breaks
+      escaped = escaped.replace(/\n/g, '<br/>');
+      return escaped;
+    }
+  </script>
+</body>
+</html>

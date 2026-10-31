@@ -1,0 +1,37 @@
+{
+  "is_configured": false,
+  "inference_mode": "local",
+  "autonomy_mode": "agent_decides",
+  "assistant_name": "Jarvis",
+  "tone": "helpful and precise",
+  "selected_provider": "local",
+  "local": {
+    "engine_type": "ollama",
+    "endpoint": "http://127.0.0.1:11434/v1",
+    "model": "llama3.2",
+    "timeout_seconds": 30.0
+  },
+  "cloud": {
+    "provider": "openai",
+    "api_key": "",
+    "model": "",
+    "custom_base_url": ""
+  },
+  "openai": {
+    "api_key": "",
+    "model": "gpt-4o"
+  },
+  "anthropic": {
+    "api_key": "",
+    "model": "claude-3-5-sonnet-20241022"
+  },
+  "gemini": {
+    "api_key": "",
+    "model": "gemini-2.0-flash"
+  },
+  "custom_openai": {
+    "base_url": "",
+    "api_key": "",
+    "model": ""
+  }
+}
